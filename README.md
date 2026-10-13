@@ -1,6 +1,6 @@
 # Epidemic Spread and Prevention
 
-Group project for **ITI42622 — Complex Systems Modelling and Optimization** at **Østfold University College**.
+Group project for **ITI41225 — Complex Systems Modelling and Optimization** at **Østfold University College**.
 
 **Project theme:** Alternative 1 — Epidemic spread and prevention  
 **Team:** Emil, Andreas and Khalid  
