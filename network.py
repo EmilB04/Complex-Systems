@@ -38,3 +38,6 @@ if __name__ == "__main__":
     # This will later be used to prioritize vaccination.
     print("Degree of person 0: ", G.degree(0))
 
+# https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.barabasi_albert_graph.html
+# https://pmc.ncbi.nlm.nih.gov/articles/PMC1578276/
+
