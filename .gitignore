@@ -1,0 +1,27 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment and tool configuration
+.env
+.env.*
+.python-version
+
+# Test and coverage reports
+.coverage
+.coverage.*
+htmlcov/
+pytestdebug.log
+
+# macOS
+.DS_Store
