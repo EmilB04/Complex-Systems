@@ -1,6 +1,7 @@
 import pytest 
 import networkx as nx
-from policies import validate_budget, random_policy, degree_policy, calculate_features
+from policies import validate_budget, random_policy, degree_policy, calculate_features, weighted_policy
+    
 
 
 # Test valid vaccination budget
@@ -88,3 +89,23 @@ def test_calculate_features():
 
     # Person 0 has one contact
     assert features[0][0] == 0.5
+
+
+def test_weighted_policy():
+    G = nx.star_graph(10)
+
+    vaccinated = weighted_policy(G, 3, [0.5, 0.3, 0.2])
+
+    assert len(vaccinated) == 3
+    assert vaccinated.issubset(set(G.nodes()))
+
+def test_weighted_policy_zero_budget():
+    G = nx.path_graph(10)
+
+    assert weighted_policy(G, 0, [1, 0, 0]) == set()
+
+def test_weighted_policy_invalid_weights():
+    G = nx.path_graph(10)
+
+    with pytest.raises(ValueError):
+        weighted_policy(G, 3, [0.5, 0.5])

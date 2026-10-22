@@ -84,3 +84,33 @@ def calculate_features(G):
 
     return features
 
+def weighted_policy(G, budget, weights):
+    """Select people for vaccination based on weighted network features.
+       The evolutionary algorithm will optimize the weights."""
+    validate_budget(G, budget)
+
+    # Three weights for each feature
+    if len(weights) != 3:
+        raise ValueError("Weights must be a list of three values.")
+
+    # Get network features for each person
+    features = calculate_features(G)
+    # Calculate a weighted score for each person
+    scores = {}
+    for node, values in features.items():
+        # Calculate the weighted score for each person
+        score = (
+            weights[0] * values[0] + weights[1] * values[1] + weights[2] * values[2]
+        )
+
+        scores[node] = score
+
+    # Sort people by their weighted score in descending order
+    ranked = sorted(
+        scores,
+        key=scores.get,
+        reverse=True
+    )
+
+    # Vaccinates the highest scoring individuals based on the budget
+    return set(ranked[:budget])
