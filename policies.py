@@ -41,3 +41,46 @@ def degree_policy(G, budget):
 
     # Select the top people based on our budget
     return set(ranked[:budget])
+
+
+def calculate_features(G):
+    """Calculate three network features for each person: 
+    1. Degree (number of connections)
+    2. Average neighbor degree
+    3. Clustering coefficient
+    """
+    # Get number of contacts (degree) for each person
+    degree = dict(G.degree())
+
+    # Calculate how connected each person's neighbors are
+    clustering = nx.clustering(G)
+
+    # Find the highest degree to normalize values
+    max_degree = max(degree.values(), default=0)
+
+    features = {}
+
+    for node in G.nodes():
+        neighbors = list(G.neighbors(node))
+
+        # Normalized degree
+        if max_degree > 0:
+            d = degree[node] / max_degree
+        else: 
+            d = 0.0
+
+        # Normalize average neighbor degree
+        if neighbors and max_degree > 0:
+            avg = sum(degree[n] for n in neighbors) / len(neighbors)
+            avg = avg / max_degree
+        else:
+            avg = 0.0
+
+        # Clustering coefficient
+        c = clustering[node]
+
+        # Store the features for this person
+        features[node] = [d, avg, c]
+
+    return features
+

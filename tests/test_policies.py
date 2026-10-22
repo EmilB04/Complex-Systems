@@ -1,6 +1,6 @@
 import pytest 
 import networkx as nx
-from policies import validate_budget, random_policy, degree_policy
+from policies import validate_budget, random_policy, degree_policy, calculate_features
 
 
 # Test valid vaccination budget
@@ -67,5 +67,24 @@ def test_zero_budget():
     assert degree_policy(G, 0) == set()
 
 
-    
-        
+def test_calculate_features():
+    # Create a small network for testing
+    G = nx.path_graph(3)
+
+    features = calculate_features(G)
+
+    # All three persons have features 
+    assert len(features) == 3
+
+    # Each person should have exactly three features
+    for values in features.values():
+        assert len(values) == 3
+
+        # Each value should be between 0 and 1
+        assert all(0 <= value <= 1 for value in values)
+
+    # Perosn 1 has the highest degrees (2 contacts)
+    assert features[1][0] == 1.0
+
+    # Person 0 has one contact
+    assert features[0][0] == 0.5
