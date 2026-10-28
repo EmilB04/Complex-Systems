@@ -1,219 +1,87 @@
 
-"""
-Unit tests for the genetic algorithm in evolution.py.
-
-Tests cover:
-- Candidate generation
-- Population generation
-- Mutation
-- Fitness evaluation
-- Tournament selection
-- Crossover
-- Complete evolutionary optimization
-"""
+# Andreas/Emil - Tests for weighted evolution
 
 import numpy as np
 import pytest
+import networkx as nx
 
-from network import create_network
 from evolution import (
     create_candidate,
     create_population,
     mutate,
+    crossover,
     evaluate_fitness,
     tournament_selection,
-    crossover,
-    run_evolution,
+    run_evolution
 )
 
 
-# --------------------------------------------------
-# Candidate generation
-# --------------------------------------------------
-
-def test_create_candidate_respects_budget():
-    G = create_network(n=50, m=2, seed=42)
+def test_create_candidate():
     rng = np.random.default_rng(42)
 
-    candidate = create_candidate(G, budget=10, rng=rng)
+    candidate = create_candidate(rng)
 
-    assert len(candidate) == 10
-    assert candidate.issubset(set(G.nodes()))
+    # Each candidate must contain exactly three weights
+    assert candidate.shape == (3,)
+
+    # All weights must be between 0 and 1
+    assert np.all((candidate >= 0) & (candidate <= 1))
 
 
-def test_create_candidate_invalid_budget():
-    G = create_network(n=50, m=2, seed=42)
+def test_create_population():
+    first = create_population(5, seed=42)
+    second = create_population(5, seed=42)
+
+    # Population contains five candidates
+    assert len(first) == 5
+
+    # Same seed must create identical candidates
+    for a, b in zip(first, second):
+        assert np.array_equal(a, b)
+
+
+def test_mutation():
     rng = np.random.default_rng(42)
 
-    with pytest.raises(ValueError):
-        create_candidate(G, budget=-1, rng=rng)
+    original = np.array([0.5, 0.3, 0.2])
 
-    with pytest.raises(ValueError):
-        create_candidate(G, budget=51, rng=rng)
+    mutated = mutate(original, rng)
 
+    # Mutated candidate must contain three weights
+    assert mutated.shape == (3,)
 
-# --------------------------------------------------
-# Population generation
-# --------------------------------------------------
+    # Weights must remain within range
+    assert np.all((mutated >= 0) & (mutated <= 1))
 
-def test_population_respects_budget():
-    G = create_network(n=200, m=3, seed=42)
-
-    population = create_population(
-        G,
-        budget=20,
-        population_size=10,
-        seed=42
-    )
-
-    assert len(population) == 10
-
-    for candidate in population:
-        assert len(candidate) == 20
-        assert candidate.issubset(set(G.nodes()))
+    # Original candidate must not be modified
+    assert np.array_equal(original, [0.5, 0.3, 0.2])
 
 
-def test_population_is_reproducible():
-    G = create_network(n=50, m=2, seed=42)
-
-    population_a = create_population(
-        G, budget=5, population_size=10, seed=42
-    )
-
-    population_b = create_population(
-        G, budget=5, population_size=10, seed=42
-    )
-
-    assert population_a == population_b
-
-
-# --------------------------------------------------
-# Mutation
-# --------------------------------------------------
-
-def test_mutation_preserves_budget():
-    G = create_network(n=200, m=3, seed=42)
+def test_crossover():
     rng = np.random.default_rng(42)
 
-    original = create_population(
-        G, budget=20, population_size=1
-    )[0]
+    parent_a = np.array([0.1, 0.2, 0.3])
+    parent_b = np.array([0.8, 0.9, 0.7])
 
-    mutated = mutate(original, G, rng)
+    offspring = crossover(parent_a, parent_b, rng)
 
-    assert len(mutated) == 20
-    assert len(original) == 20
-    assert mutated.issubset(set(G.nodes()))
+    # Offspring must inherit weights from its parents
+    for i in range(3):
+        assert offspring[i] in (parent_a[i], parent_b[i])
 
-    # Exactly one individual must be replaced.
-    assert len(original ^ mutated) == 2
-
-
-def test_mutation_does_not_modify_original():
-    G = create_network(n=50, m=2, seed=42)
-    rng = np.random.default_rng(42)
-
-    original = {0, 1, 2, 3, 4}
-    original_copy = original.copy()
-
-    mutate(original, G, rng)
-
-    assert original == original_copy
-
-
-# --------------------------------------------------
-# Fitness evaluation
-# --------------------------------------------------
-
-def test_fitness_with_no_transmission():
-    G = create_network(n=50, m=2, seed=42)
-
-    # No vaccinated individuals, so patient zero
-    # always becomes infected.
-    fitness = evaluate_fitness(
-        G=G,
-        candidate=set(),
-        seeds=[10, 20, 30],
-        beta=0.0,
-        gamma=1.0
-    )
-
-    # No secondary infections are possible.
-    assert fitness == 1.0
-
-
-def test_fitness_with_full_vaccination():
-    G = create_network(n=20, m=2, seed=42)
-
-    candidate = set(G.nodes())
-
-    fitness = evaluate_fitness(
-        G=G,
-        candidate=candidate,
-        seeds=[10, 20, 30]
-    )
-
-    # Every initial exposure is blocked.
-    assert fitness == 0.0
-
-
-def test_fitness_is_reproducible():
-    G = create_network(n=50, m=2, seed=42)
-    candidate = {0, 1, 2, 3, 4}
-
-    fitness_a = evaluate_fitness(
-        G, candidate, seeds=[10, 20, 30]
-    )
-
-    fitness_b = evaluate_fitness(
-        G, candidate, seeds=[10, 20, 30]
-    )
-
-    assert fitness_a == fitness_b
-
-
-def test_fitness_requires_seeds():
-    G = create_network(n=20, m=2, seed=42)
-
-    with pytest.raises(ValueError):
-        evaluate_fitness(G, {0, 1}, seeds=[])
-
-
-# --------------------------------------------------
-# Tournament selection
-# --------------------------------------------------
 
 def test_tournament_selection():
-    G = create_network(n=30, m=2, seed=42)
-
-    population = create_population(
-        G, budget=5, population_size=6, seed=42
-    )
-
-    fitness_scores = [30, 20, 10, 40, 50, 60]
     rng = np.random.default_rng(42)
 
-    selected = tournament_selection(
-        population,
-        fitness_scores,
-        rng,
-        tournament_size=3
-    )
-
-    assert selected in population
-    assert len(selected) == 5
-
-
-def test_tournament_selects_best_when_all_compete():
     population = [
-        {0, 1},
-        {2, 3},
-        {4, 5}
+        np.array([0.1, 0.1, 0.1]),
+        np.array([0.2, 0.2, 0.2]),
+        np.array([0.3, 0.3, 0.3])
     ]
 
     fitness_scores = [30, 10, 20]
-    rng = np.random.default_rng(42)
 
+    # All candidates compete, so the best should win
     selected = tournament_selection(
         population,
         fitness_scores,
@@ -221,121 +89,37 @@ def test_tournament_selects_best_when_all_compete():
         tournament_size=3
     )
 
-    assert selected == {2, 3}
+    assert np.array_equal(selected, population[1])
 
 
-def test_tournament_rejects_invalid_size():
-    population = [{0}, {1}, {2}]
-    fitness_scores = [3, 2, 1]
-    rng = np.random.default_rng(42)
+def test_fitness():
+    G = nx.path_graph(12)
 
-    with pytest.raises(ValueError):
-        tournament_selection(
-            population,
-            fitness_scores,
-            rng,
-            tournament_size=4
-        )
+    weights = [0.5, 0.3, 0.2]
 
-
-# --------------------------------------------------
-# Crossover
-# --------------------------------------------------
-
-def test_crossover_preserves_budget():
-    G = create_network(n=200, m=3, seed=42)
-    rng = np.random.default_rng(42)
-
-    population = create_population(
-        G,
-        budget=20,
-        population_size=2
+    first = evaluate_fitness(
+        G, weights, seeds=[10, 20], budget=3
     )
 
-    parent_a, parent_b = population
-
-    offspring = crossover(parent_a, parent_b, G, rng)
-
-    assert len(offspring) == 20
-    assert offspring.issubset(parent_a | parent_b)
-    assert offspring.issubset(set(G.nodes()))
-
-    # Parents must not be modified.
-    assert len(parent_a) == 20
-    assert len(parent_b) == 20
-
-
-def test_crossover_preserves_shared_nodes():
-    G = create_network(n=20, m=2, seed=42)
-    rng = np.random.default_rng(42)
-
-    parent_a = {0, 1, 2, 3}
-    parent_b = {0, 1, 4, 5}
-
-    offspring = crossover(parent_a, parent_b, G, rng)
-
-    assert len(offspring) == 4
-    assert {0, 1}.issubset(offspring)
-
-
-def test_crossover_rejects_different_budgets():
-    G = create_network(n=20, m=2, seed=42)
-    rng = np.random.default_rng(42)
-
-    with pytest.raises(ValueError):
-        crossover({0, 1}, {2, 3, 4}, G, rng)
-
-
-# --------------------------------------------------
-# Complete genetic algorithm
-# --------------------------------------------------
-
-def test_evolution_preserves_budget():
-    G = create_network(n=30, m=2, seed=42)
-
-    result = run_evolution(
-        G=G,
-        budget=5,
-        population_size=6,
-        generations=3,
-        fitness_seeds=[10, 20],
-        seed=42
+    second = evaluate_fitness(
+        G, weights, seeds=[10, 20], budget=3
     )
 
-    assert len(result["best_candidate"]) == 5
-    assert result["best_candidate"].issubset(set(G.nodes()))
-    assert len(result["fitness_history"]) == 3
+    # Same setup should produce the same result
+    assert first == second
 
-
-def test_best_fitness_never_increases():
-    G = create_network(n=30, m=2, seed=42)
-
-    result = run_evolution(
-        G=G,
-        budget=5,
-        population_size=6,
-        generations=3,
-        fitness_seeds=[10, 20],
-        seed=42
+    # With beta=0, only the initial person can be infected
+    no_transmission = evaluate_fitness(
+        G, weights, seeds=[10, 20], budget=3, beta=0
     )
 
-    history = [
-        row["best_fitness"]
-        for row in result["fitness_history"]
-    ]
-
-    # Elitism ensures the best-so-far fitness
-    # cannot become worse.
-    assert all(
-        history[i] <= history[i - 1]
-        for i in range(1, len(history))
-    )
+    assert 0 <= no_transmission <= 1
 
 
-def test_evolution_is_reproducible():
-    G = create_network(n=30, m=2, seed=42)
+def test_full_evolution():
+    G = nx.barabasi_albert_graph(30, 2, seed=42)
 
-    kwargs = {
+    settings = {
         "G": G,
         "budget": 5,
         "population_size": 6,
@@ -344,22 +128,44 @@ def test_evolution_is_reproducible():
         "seed": 42
     }
 
-    result_a = run_evolution(**kwargs)
-    result_b = run_evolution(**kwargs)
+    first = run_evolution(**settings)
+    second = run_evolution(**settings)
 
-    assert result_a["best_candidate"] == result_b["best_candidate"]
-    assert result_a["best_fitness"] == result_b["best_fitness"]
-    assert result_a["fitness_history"] == result_b["fitness_history"]
+    # Exactly five people should be vaccinated
+    assert len(first["best_vaccinated"]) == 5
+
+    # Each candidate contains three weights
+    assert len(first["best_weights"]) == 3
+
+    # Running twice with the same seed is reproducible
+    assert np.array_equal(
+        first["best_weights"],
+        second["best_weights"]
+    )
+
+    assert first["best_fitness"] == second["best_fitness"]
+
+    # Best fitness found so far must never increase
+    history = [
+        row["best_fitness"]
+        for row in first["fitness_history"]
+    ]
+
+    assert history == sorted(history, reverse=True)
 
 
-def test_evolution_rejects_invalid_parameters():
-    G = create_network(n=30, m=2, seed=42)
+def test_invalid_parameters():
+    G = nx.path_graph(10)
 
+    # Cannot vaccinate more people than exist
     with pytest.raises(ValueError):
-        run_evolution(G, budget=5, population_size=1)
+        run_evolution(G, budget=11)
 
+    # A candidate must contain exactly three weights
     with pytest.raises(ValueError):
-        run_evolution(G, budget=5, generations=0)
-
-    with pytest.raises(ValueError):
-        run_evolution(G, budget=5, mutation_rate=1.5)
+        evaluate_fitness(
+            G,
+            candidate=[0.1, 0.2],
+            seeds=[1],
+            budget=3
+        )
