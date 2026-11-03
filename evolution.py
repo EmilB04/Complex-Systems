@@ -29,9 +29,9 @@ def check_weights(weights):
             "Candidate must have three finite weights."
         )
 
-    if np.any(values < 0) or np.any(values > 1):
+    if np.any(values < -1) or np.any(values > 1):
         raise ValueError(
-            "Candidate weights must be between 0 and 1."
+            "Candidate weights must be between -1 and 1."
         )
 
     return values
@@ -45,8 +45,9 @@ def create_candidate(rng):
     a network feature in the vaccination policy.
     """
 
-    # Generate three weights between 0 and 1
-    return rng.uniform(0, 1, size=3)
+    # Generate three weights between -1 and 1.
+    # A negative weight lets a feature lower a person's score.
+    return rng.uniform(-1, 1, size=3)
 
 
 def create_population(population_size=20, seed=42):
@@ -81,7 +82,7 @@ def mutate(candidate, rng, sigma=0.1):
     Mutate a candidate by adding Gaussian noise.
 
     The original candidate is not modified.
-    Weights remain between 0 and 1.
+    Weights remain between -1 and 1.
     """
 
     weights = check_weights(candidate)
@@ -96,8 +97,8 @@ def mutate(candidate, rng, sigma=0.1):
 
     mutated = weights + noise
 
-    # Keep weights between 0 and 1
-    return np.clip(mutated, 0, 1)
+    # Keep weights between -1 and 1
+    return np.clip(mutated, -1, 1)
 
 
 def crossover(parent_a, parent_b, rng):

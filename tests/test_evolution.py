@@ -5,7 +5,9 @@ import numpy as np
 import pytest
 import networkx as nx
 
+from policies import weighted_policy
 from evolution import (
+    check_weights,
     create_candidate,
     create_population,
     mutate,
@@ -24,8 +26,8 @@ def test_create_candidate():
     # Each candidate must contain exactly three weights
     assert candidate.shape == (3,)
 
-    # All weights must be between 0 and 1
-    assert np.all((candidate >= 0) & (candidate <= 1))
+    # All weights must be between -1 and 1
+    assert np.all((candidate >= -1) & (candidate <= 1))
 
 
 def test_create_population():
@@ -51,7 +53,7 @@ def test_mutation():
     assert mutated.shape == (3,)
 
     # Weights must remain within range
-    assert np.all((mutated >= 0) & (mutated <= 1))
+    assert np.all((mutated >= -1) & (mutated <= 1))
 
     # Original candidate must not be modified
     assert np.array_equal(original, [0.5, 0.3, 0.2])
@@ -169,3 +171,28 @@ def test_invalid_parameters():
             seeds=[1],
             budget=3
         )
+
+def test_negative_weights_are_allowed():
+    # Negative weights are valid and are used as given
+    assert np.array_equal(
+        check_weights([-1.0, 0.0, 1.0]),
+        [-1.0, 0.0, 1.0]
+    )
+
+    # Weights outside [-1, 1] are rejected
+    with pytest.raises(ValueError):
+        check_weights([1.5, 0.0, 0.0])
+
+    with pytest.raises(ValueError):
+        check_weights([-1.5, 0.0, 0.0])
+
+
+def test_negative_weight_prefers_low_feature_values():
+    # Two triangles joined by one edge: nodes 2 and 3 have clustering
+    # below 1, the others have clustering 1.
+    G = nx.Graph([(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (4, 5), (3, 5)])
+
+    # Only clustering has weight, and it is negative
+    vaccinated = weighted_policy(G, 2, [0.0, 0.0, -1.0])
+
+    assert vaccinated == {2, 3}
