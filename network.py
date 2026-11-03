@@ -1,4 +1,4 @@
-# Andreas - Network generation using Barabási Albert model
+# Andreas and Khalid - Network generation using Barabási Albert model
 import networkx as nx
 
 def create_network(n=200, m=3, seed=42):
@@ -25,6 +25,14 @@ def create_network(n=200, m=3, seed=42):
     # which reflects the heterogeneity of social contacts in real life.
     return nx.barabasi_albert_graph(n, m, seed=seed)
 
+def create_networks(seeds, n=200, m=3):
+    """Create one Barabási Albert network per seed.
+
+    Used to train and test vaccination rules on several networks,
+    so a rule is not judged on a single network only.
+    """
+    return [create_network(n=n, m=m, seed=seed) for seed in seeds]
+
 # Example usage of the network generation function.
 # This allows us to test the network generation function independently.
 if __name__ == "__main__":
@@ -40,4 +48,3 @@ if __name__ == "__main__":
 
 # https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.barabasi_albert_graph.html
 # https://pmc.ncbi.nlm.nih.gov/articles/PMC1578276/
-

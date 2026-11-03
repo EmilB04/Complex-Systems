@@ -1,4 +1,4 @@
-﻿# Emil and Andreas
+﻿# Emil, Andreas and Khalid
 """
 Evolutionary optimization of vaccination strategies.
 
@@ -13,10 +13,25 @@ individuals for vaccination.
 Lower fitness means fewer infections.
 """
 
+import networkx as nx
 import numpy as np
 
 from epidemic import simulate_epidemic
 from policies import validate_budget, weighted_policy
+
+
+def as_graph_list(G):
+    """Accept one network or a list of networks and return a list."""
+
+    if isinstance(G, nx.Graph):
+        return [G]
+
+    graphs = list(G)
+
+    if not graphs:
+        raise ValueError("At least one network is required.")
+
+    return graphs
 
 
 def check_weights(weights):
@@ -130,22 +145,42 @@ def evaluate_fitness(
     """
     Evaluate a candidate across several epidemic simulations.
 
+    G can be one network or a list of networks. The candidate is
+    applied to every network, and every seed is simulated on every
+    network, so fitness is the mean over networks x seeds.
+
     The candidate contains three weights.
     weighted_policy() selects the vaccinated individuals.
 
     Lower fitness means fewer infections.
     """
 
-    validate_budget(G, budget)
+    graphs = as_graph_list(G)
     weights = check_weights(candidate)
-
     seeds = list(seeds)
-    nodes = sorted(G.nodes())
 
-    if not nodes or not seeds:
-        raise ValueError(
-            "A nonempty network and at least one seed are required."
+    if not seeds:
+        raise ValueError("At least one seed is required.")
+
+    infection_counts = []
+
+    for graph in graphs:
+        validate_budget(graph, budget)
+
+        if graph.number_of_nodes() == 0:
+            raise ValueError("Networks cannot be empty.")
+
+        # The rule is recomputed on each network
+        infection_counts.extend(
+            simulate_candidate(graph, weights, seeds, budget, beta, gamma)
         )
+
+    # Return average infections across all simulations
+    return float(np.mean(infection_counts))
+
+
+def simulate_candidate(G, weights, seeds, budget, beta, gamma):
+    """Run one epidemic per seed on one network and return the counts."""
 
     # Use Andreas' weighted policy to select people
     vaccinated = weighted_policy(G, budget, weights)
@@ -169,8 +204,7 @@ def evaluate_fitness(
         # Save the number of infected individuals
         infection_counts.append(result["total_infected"])
 
-    # Return average infections across all simulations
-    return float(np.mean(infection_counts))
+    return infection_counts
 
 
 def tournament_selection(
@@ -229,16 +263,21 @@ def run_evolution(
     """
     Optimize vaccination weights using a genetic algorithm.
 
+    G can be one network or a list of training networks.
+
     Returns:
         Best weights, vaccinated people,
         best fitness and fitness history.
     """
 
     # 1. Validate parameters
-    validate_budget(G, budget)
+    graphs = as_graph_list(G)
 
-    if G.number_of_nodes() == 0:
-        raise ValueError("Network cannot be empty.")
+    for graph in graphs:
+        validate_budget(graph, budget)
+
+        if graph.number_of_nodes() == 0:
+            raise ValueError("Network cannot be empty.")
 
     if not isinstance(population_size, int) or population_size < 2:
         raise ValueError(
@@ -295,7 +334,7 @@ def run_evolution(
 
         if key not in fitness_cache:
             fitness_cache[key] = evaluate_fitness(
-                G=G,
+                G=graphs,
                 candidate=weights,
                 seeds=fitness_seeds,
                 budget=budget
@@ -381,12 +420,15 @@ def run_evolution(
         # Replace the old population
         population = new_population
 
-    # 6. Convert the best weights into vaccinated individuals
-    best_vaccinated = weighted_policy(
-        G,
-        budget,
-        best_weights
-    )
+    # 6. Convert the best weights into vaccinated individuals.
+    # One set per network, or a single set if one network was given.
+    best_vaccinated = [
+        weighted_policy(graph, budget, best_weights)
+        for graph in graphs
+    ]
+
+    if isinstance(G, nx.Graph):
+        best_vaccinated = best_vaccinated[0]
 
     # 7. Return the optimization results
     return {

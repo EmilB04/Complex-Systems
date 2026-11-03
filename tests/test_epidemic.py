@@ -1,3 +1,4 @@
+# Emil and Khalid - Tests for the epidemic simulation
 
 import networkx as nx
 import numpy as np
@@ -61,7 +62,6 @@ def test_invalid_infection_probability():
         simulate_epidemic(G, beta=1.5)
 
 
-
 def test_vaccination_blocks_initial_infection():
     G = nx.path_graph(10)
 
@@ -78,6 +78,7 @@ def test_vaccination_blocks_initial_infection():
     assert result["peak_infected"] == 0
     assert result["epidemic_ended"] is True
     assert result["duration"] == 0
+
 
 def test_patient_zero_is_never_vaccinated():
     G = nx.path_graph(10)
@@ -142,6 +143,7 @@ def test_long_outbreak_is_not_truncated():
 
     assert result["total_infected"] == 300
     assert result["epidemic_ended"] is True
+
 
 def test_same_seed_gives_same_patient_zero_across_policies():
     G = nx.path_graph(50)

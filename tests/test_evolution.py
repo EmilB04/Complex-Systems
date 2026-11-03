@@ -1,5 +1,4 @@
-
-# Andreas/Emil - Tests for weighted evolution
+# Andreas/Emil/Khalid - Tests for weighted evolution
 
 import numpy as np
 import pytest
@@ -118,6 +117,7 @@ def test_fitness():
     # Patient zero is never vaccinated, so exactly one infection
     assert no_transmission == 1
 
+
 def test_full_evolution():
     G = nx.barabasi_albert_graph(30, 2, seed=42)
 
@@ -172,6 +172,7 @@ def test_invalid_parameters():
             budget=3
         )
 
+
 def test_negative_weights_are_allowed():
     # Negative weights are valid and are used as given
     assert np.array_equal(
@@ -196,3 +197,33 @@ def test_negative_weight_prefers_low_feature_values():
     vaccinated = weighted_policy(G, 2, [0.0, 0.0, -1.0])
 
     assert vaccinated == {2, 3}
+
+
+def test_fitness_over_several_networks():
+    G_a = nx.barabasi_albert_graph(40, 2, seed=1)
+    G_b = nx.barabasi_albert_graph(40, 2, seed=2)
+    weights = [0.5, -0.3, 0.2]
+    seeds = [10, 20, 30]
+
+    single_a = evaluate_fitness(G_a, weights, seeds=seeds, budget=4)
+    single_b = evaluate_fitness(G_b, weights, seeds=seeds, budget=4)
+    both = evaluate_fitness([G_a, G_b], weights, seeds=seeds, budget=4)
+
+    # Same number of seeds per network, so the result is the mean
+    assert both == pytest.approx((single_a + single_b) / 2)
+
+
+def test_evolution_over_several_networks():
+    graphs = [nx.barabasi_albert_graph(30, 2, seed=s) for s in (1, 2)]
+
+    result = run_evolution(
+        graphs,
+        budget=5,
+        population_size=4,
+        generations=2,
+        fitness_seeds=[10, 20]
+    )
+
+    # One vaccinated set per network, each within budget
+    assert len(result["best_vaccinated"]) == 2
+    assert all(len(v) == 5 for v in result["best_vaccinated"])

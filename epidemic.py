@@ -1,4 +1,4 @@
-# Emil
+# Emil and Khalid
 """
 SIR epidemic simulation on a contact network.
 
@@ -53,7 +53,7 @@ def simulate_epidemic(
         beta: Infection probability per infectious contact per step.
         gamma: Recovery probability per infected node per step.
         initial_infected: Initial infected nodes. If None, choose one
-        random unvaccinated node.
+                          random unvaccinated node.
         max_steps: Maximum number of simulation steps.
         seed: Random seed for reproducibility.
 
