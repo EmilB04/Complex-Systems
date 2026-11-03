@@ -113,8 +113,8 @@ def test_fitness():
         G, weights, seeds=[10, 20], budget=3, beta=0
     )
 
-    assert 0 <= no_transmission <= 1
-
+    # Patient zero is never vaccinated, so exactly one infection
+    assert no_transmission == 1
 
 def test_full_evolution():
     G = nx.barabasi_albert_graph(30, 2, seed=42)

@@ -15,7 +15,7 @@ Lower fitness means fewer infections.
 
 import numpy as np
 
-from epidemic import simulate_epidemic
+from epidemic import choose_patient_zero, simulate_epidemic
 from policies import validate_budget, weighted_policy
 
 
@@ -153,9 +153,12 @@ def evaluate_fitness(
 
     for seed in seeds:
 
-        # Choose initial exposure independently of vaccination
+        # Choose patient zero among unvaccinated people.
+        # The same seed gives the same patient zero for every candidate
+        # whenever that person is unvaccinated under both.
         rng = np.random.default_rng(seed)
-        patient_zero = int(rng.choice(nodes))
+        patient_zero = choose_patient_zero(nodes, vaccinated, rng)
+        initial_infected = set() if patient_zero is None else {patient_zero}
 
         # Simulate the epidemic using selected individuals
         result = simulate_epidemic(
@@ -163,7 +166,7 @@ def evaluate_fitness(
             vaccinated=vaccinated,
             beta=beta,
             gamma=gamma,
-            initial_infected={patient_zero},
+            initial_infected=initial_infected,
             seed=seed
         )
 
