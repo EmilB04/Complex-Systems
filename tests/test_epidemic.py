@@ -125,3 +125,20 @@ def test_default_outbreak_always_starts():
 
         # One unvaccinated person is always infected at the start
         assert result["total_infected"] == 1
+
+
+def test_long_outbreak_is_not_truncated():
+    # A chain where each step infects exactly one new person.
+    # The outbreak needs about 300 steps to reach the end.
+    G = nx.path_graph(300)
+
+    result = simulate_epidemic(
+        G,
+        beta=1.0,
+        gamma=1.0,
+        initial_infected={0},
+        seed=42
+    )
+
+    assert result["total_infected"] == 300
+    assert result["epidemic_ended"] is True

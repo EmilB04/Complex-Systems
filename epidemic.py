@@ -41,7 +41,7 @@ def simulate_epidemic(
     beta=0.05,
     gamma=0.10,
     initial_infected=None,
-    max_steps=100,
+    max_steps=1000,
     seed=42
 ):
     """
