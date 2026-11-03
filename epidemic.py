@@ -71,7 +71,10 @@ def simulate_epidemic(
     if not isinstance(max_steps, int) or max_steps < 0:
         raise ValueError("max_steps must be a non-negative integer")
 
-    rng = np.random.default_rng(seed)
+    # Two separate random streams that both depend only on seed:
+    # one chooses patient zero, the other drives the epidemic.
+    exposure_seed, epidemic_seed = np.random.SeedSequence(seed).spawn(2)
+    rng = np.random.default_rng(epidemic_seed)
 
     nodes = set(G.nodes())
     vaccinated = set() if vaccinated is None else set(vaccinated)
@@ -89,7 +92,8 @@ def simulate_epidemic(
     # 3. Select the initial infection exposure
     if initial_infected is None:
         # Choose among unvaccinated people only.
-        patient_zero = choose_patient_zero(nodes, vaccinated, rng)
+        exposure_rng = np.random.default_rng(exposure_seed)
+        patient_zero = choose_patient_zero(nodes, vaccinated, exposure_rng)
         initial_infected = set() if patient_zero is None else {patient_zero}
     else:
         initial_infected = set(initial_infected)
@@ -113,6 +117,7 @@ def simulate_epidemic(
     }]
 
     total_infected = len(infected)
+    infected_at_start = set(infected)
 
     # 5. Run the epidemic simulation
     for step in range(1, max_steps + 1):
@@ -159,6 +164,7 @@ def simulate_epidemic(
         ),
         "duration": history[-1]["step"],
         "vaccinated_count": len(vaccinated),
+        "initial_infected": sorted(infected_at_start),
         "epidemic_ended": len(infected) == 0,
         "history": history,
     }

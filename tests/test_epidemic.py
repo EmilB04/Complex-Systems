@@ -142,3 +142,19 @@ def test_long_outbreak_is_not_truncated():
 
     assert result["total_infected"] == 300
     assert result["epidemic_ended"] is True
+
+def test_same_seed_gives_same_patient_zero_across_policies():
+    G = nx.path_graph(50)
+    policy_a = set(range(0, 10))
+    policy_b = set(range(40, 50))
+
+    for seed in range(30):
+        a = simulate_epidemic(G, vaccinated=policy_a, seed=seed)
+        b = simulate_epidemic(G, vaccinated=policy_b, seed=seed)
+        none = simulate_epidemic(G, seed=seed)
+
+        # If patient zero without vaccination is unvaccinated under both
+        # policies, both policies start the outbreak in the same person.
+        if none["initial_infected"][0] not in policy_a | policy_b:
+            assert a["initial_infected"] == b["initial_infected"]
+            assert a["initial_infected"] == none["initial_infected"]
