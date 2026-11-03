@@ -258,12 +258,17 @@ def run_evolution(
     mutation_rate=0.2,
     tournament_size=3,
     fitness_seeds=None,
-    seed=42
+    seed=42,
+    beta=0.05,
+    gamma=0.10,
+    verbose=True
 ):
     """
     Optimize vaccination weights using a genetic algorithm.
 
     G can be one network or a list of training networks.
+    beta and gamma are passed on to every epidemic simulation.
+    Set verbose=False to hide the progress printout.
 
     Returns:
         Best weights, vaccinated people,
@@ -337,7 +342,9 @@ def run_evolution(
                 G=graphs,
                 candidate=weights,
                 seeds=fitness_seeds,
-                budget=budget
+                budget=budget,
+                beta=beta,
+                gamma=gamma
             )
 
         return fitness_cache[key]
@@ -369,11 +376,12 @@ def run_evolution(
             "average_fitness": float(np.mean(fitness_scores))
         })
 
-        print(
-            f"Generation {generation + 1}/{generations} | "
-            f"Best fitness: {best_fitness:.2f} | "
-            f"Average fitness: {np.mean(fitness_scores):.2f}"
-        )
+        if verbose:
+            print(
+                f"Generation {generation + 1}/{generations} | "
+                f"Best fitness: {best_fitness:.2f} | "
+                f"Average fitness: {np.mean(fitness_scores):.2f}"
+            )
 
         # No offspring needed after the final generation
         if generation == generations - 1:
