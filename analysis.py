@@ -243,7 +243,7 @@ def figure_outcomes(rows, summary):
     """Distribution of outbreak sizes per policy (small multiples)."""
 
     fig, axes = plt.subplots(
-        len(POLICIES), 1, figsize=(5.5, 6.0), sharex=True, sharey=True
+        len(POLICIES), 1, figsize=(6.0, 4.6), sharex=True, sharey=True
     )
     bins = np.arange(0, N + 10, 10)
     means = {row["policy"]: row["mean_infected"] for row in summary}
@@ -256,20 +256,20 @@ def figure_outcomes(rows, summary):
         ax.hist(infected, bins=bins, weights=weights,
                 color=COLOURS[policy], rwidth=0.85)
         ax.axvline(means[policy], color=INK, linewidth=1)
-        ax.text(means[policy] + 3, 70, f"mean {means[policy]:.1f}",
+        ax.text(means[policy] + 3, 75, f"mean {means[policy]:.1f}",
                 color=INK, fontsize=8, va="top")
-        ax.set_ylabel(LABELS[policy], rotation=0, ha="right",
-                      va="center", color=INK)
+        ax.set_title(LABELS[policy], loc="left", fontsize=9,
+                     color=INK, pad=2)
         ax.set_ylim(0, 80)
         ax.set_yticks([0, 40, 80])
         ax.grid(axis="x", visible=False)
 
     axes[-1].set_xlabel("People infected (of 200)")
-    fig.text(0.98, 0.5, "Share of test scenarios (%)", rotation=270,
-             va="center", ha="center", color=INK_SECONDARY)
+    fig.supylabel("Share of test scenarios (%)", color=INK_SECONDARY,
+                  fontsize=9)
     fig.suptitle("Outbreak size on 400 held-out scenarios",
                  fontweight="bold", fontsize=10)
-    fig.tight_layout(rect=(0, 0, 0.96, 1))
+    fig.tight_layout()
     save(fig, "fig_outcomes")
 
 
