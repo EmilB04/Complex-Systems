@@ -47,8 +47,8 @@ M = 3
 FULL = {
     "train_graph_seeds": range(1, 6),
     "train_outbreak_seeds": range(10, 20),
-    "test_graph_seeds": range(101, 121),
-    "test_outbreak_seeds": range(1000, 1020),
+    "test_graph_seeds": range(301, 321),
+    "test_outbreak_seeds": range(2000, 2020),
     "search_seeds": range(1, 11),
     "population_size": 20,
     "generations": 20,
