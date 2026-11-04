@@ -1,0 +1,5 @@
+comparison,mean_difference,ci_low,ci_high,networks_where_second_better,networks
+random - evolved,85.663,78.952,92.461,20,20
+degree - evolved,-0.465,-2.991,1.902,10,20
+random_search - evolved,-0.893,-2.011,0.212,6,20
+random - degree,86.128,80.015,92.395,20,20
