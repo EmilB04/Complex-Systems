@@ -1,45 +1,39 @@
-from network import create_network
-from policies import random_policy, degree_policy
+"""
+Runs one outbreak on one network for no vaccination, random and
+highest-degree-first, using the same settings as the main experiments.
+This is a sanity check, not a comparison: use experiments.py and
+analysis.py for results.
+"""
+
 from epidemic import simulate_epidemic
+from experiments import BETA, BUDGET, GAMMA, M, N
+from network import create_network
+from policies import degree_policy, random_policy
 
 
 def main():
-    # Create a network of 200 individuals.
-    G = create_network(n=200, m=3, seed=42)
+    G = create_network(n=N, m=M, seed=42)
 
-    budget = 20
+    policies = {
+        "No vaccination": set(),
+        "Random": random_policy(G, BUDGET, seed=42),
+        "Highest degree": degree_policy(G, BUDGET),
+    }
 
-    # Create vaccination strategies.
-    random_vaccinated = random_policy(G, budget, seed=42)
-    degree_vaccinated = degree_policy(G, budget)
+    for name, vaccinated in policies.items():
+        # Same seed for every policy, so the outbreak starts in the same
+        # person whenever that person is unvaccinated
+        result = simulate_epidemic(
+            G, vaccinated=vaccinated, beta=BETA, gamma=GAMMA, seed=42
+        )
 
-    # Run both strategies under the same epidemic parameters.
-    random_result = simulate_epidemic(
-        G,
-        vaccinated=random_vaccinated,
-        beta=0.05,
-        gamma=0.10,
-        seed=42
-    )
+        print(f"=== {name} ===")
+        print("Patient zero:", result["initial_infected"])
+        print("Total infected:", result["total_infected"])
+        print("Peak infected:", result["peak_infected"])
+        print("Duration:", result["duration"])
+        print()
 
-    degree_result = simulate_epidemic(
-        G,
-        vaccinated=degree_vaccinated,
-        beta=0.05,
-        gamma=0.10,
-        seed=42
-    )
-
-    print("=== Random Vaccination ===")
-    print("Total infected:", random_result["total_infected"])
-    print("Peak infected:", random_result["peak_infected"])
-    print("Duration:", random_result["duration"])
-
-    print("\n=== Degree Vaccination ===")
-    print("Total infected:", degree_result["total_infected"])
-    print("Peak infected:", degree_result["peak_infected"])
-    print("Duration:", degree_result["duration"])
 
 if __name__ == "__main__":
     main()
-
