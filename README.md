@@ -39,15 +39,15 @@ The epidemic is hypothetical. This is a controlled modelling study, **not** a va
 
 | Policy | Mean infected [95 % CI] | Median | Large outbreaks (>20) |
 |---|---:|---:|---:|
-| No vaccination | 141.4 [134.7, 148.1] | 179 | 78 % |
-| Random | 117.1 [112.7, 121.7] | 151 | 76 % |
-| Highest degree | 31.0 [26.9, 35.8] | 4 | 36 % |
-| Evolved (GA) | 31.5 [26.7, 37.1] | 5 | 38 % |
-| Random search | 30.6 [26.1, 36.1] | 5 | 37 % |
+| No vaccination | 152.0 [146.4, 157.4] | 178 | 84 % |
+| Random | 122.9 [117.3, 128.6] | 152 | 80 % |
+| Highest degree | 26.3 [21.3, 31.3] | 4 | 35 % |
+| Evolved (GA) | 26.6 [22.6, 30.7] | 4 | 32 % |
+| Random search | 26.1 [21.9, 30.4] | 4 | 31 % |
 
-- The evolved rule clearly beats random immunisation: 85.7 fewer infected per network [79.0, 92.5], better on 20 of 20 test networks.
-- It does **not** beat highest-degree-first (difference −0.5 [−3.0, 1.9]).
-- Random search over the same weights is as good as the GA.
+- The evolved rule clearly beats random immunisation: 96.3 fewer infected per network [89.1, 103.3], better on 20 of 20 test networks.
+- It does **not** beat highest-degree-first (difference −0.3 [−4.0, 3.4], better on 9 of 20 networks).
+- Random search over the same weights is as good as the GA (−0.5 [−1.3, 0.2]).
 - All runs converge to a similar rule: large positive weight on degree, negative weight on clustering.
 
 Details, decisions and the full experiment log: [`results/README.md`](results/README.md).
@@ -56,7 +56,7 @@ Details, decisions and the full experiment log: [`results/README.md`](results/RE
 
 ### Contact networks (`network.py`)
 
-Barabási–Albert graphs with n = 200 and m = 3 (591 edges, mean degree 5.91), generated with NetworkX. Every network is static during an outbreak. Separate network seeds are used for training (1–5), testing (101–120) and the pilot (200–209).
+Barabási–Albert graphs with n = 200 and m = 3 (591 edges, mean degree 5.91), generated with NetworkX. Every network is static during an outbreak. Separate network seeds are used for training (1–5), testing (301–320, outbreaks 2000–2019) and the pilot (200–209). Networks 101–120 were used for development checks in `test_run.py` and are not part of the final test.
 
 ### SIR dynamics (`epidemic.py`)
 
@@ -132,7 +132,7 @@ python analysis.py             # statistics, table and figures (~15 s)
 
 `experiments.py` overwrites the CSV files in `results/`. Seeds are fixed, so a rerun on the same commit gives identical files.
 
-Smaller demonstrations: `python main.py` (one outbreak per fixed policy) and `python test_run.py` (one GA run with a held-out test).
+Smaller demonstrations: `python main.py` (one outbreak per fixed policy) and `python test_run.py` (one GA run, checked on development networks 101–120).
 
 ## Repository structure
 
@@ -148,7 +148,7 @@ Complex-Systems/
 ├── experiments.py      # E1 (main comparison) and E2 (random search)
 ├── analysis.py         # Bootstrap statistics, LaTeX table and figures
 ├── main.py             # Quick demo: one outbreak per fixed policy
-├── test_run.py         # Quick demo: one GA run with held-out test
+├── test_run.py         # Quick demo: one GA run, development check
 ├── results/
 │   ├── README.md       # Experiment log and decisions
 │   ├── pilot.csv
@@ -171,7 +171,7 @@ Complex-Systems/
 
 - **Equal budget:** every policy immunises exactly the same number of people.
 - **Same scenarios:** all policies meet the same networks, outbreak seeds and disease parameters.
-- **Train/test separation:** search uses training networks only; test networks are never seen during search.
+- **Train/test separation:** search uses training networks only; the final test networks (301–320) were never used during development or search.
 - **Repeated runs:** 10 independent GA runs and 10 random searches.
 - **Equal search effort:** random search gets the same number of evaluations as the GA.
 - **Limitations:** perfect immunity, static contacts, a single synthetic network family and a hypothetical disease restrict interpretation.
