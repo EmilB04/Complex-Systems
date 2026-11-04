@@ -1,17 +1,19 @@
-# Khalid - Demo: train on several networks and test on new ones
+# Khalid - Demo: train on several networks and check on development networks
 
 import time
 
 from network import create_networks
 from evolution import evaluate_fitness, run_evolution
 
-# Separate networks for training and testing
+# Separate networks for training and development checks.
+# Networks 101-120 are the development set; the final test (301-320)
+# is only used in experiments.py.
 train_graphs = create_networks(seeds=range(1, 6))       # 5 networks
-test_graphs = create_networks(seeds=range(101, 121))    # 20 new networks
+test_graphs = create_networks(seeds=range(101, 121))    # 20 development networks
 
 # 10 outbreaks per training network = 50 training scenarios
 train_seeds = list(range(10, 20))
-# 10 outbreaks per test network = 200 test scenarios
+# 10 outbreaks per development network = 200 development scenarios
 test_seeds = list(range(1000, 1010))
 
 start = time.perf_counter()
