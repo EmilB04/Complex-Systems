@@ -1,4 +1,4 @@
-# Emil
+# Emil and Khalid
 """
 SIR epidemic simulation on a contact network.
 
@@ -9,10 +9,30 @@ R = Recovered or vaccinated (immune)
 Vaccinated individuals are immune from the start.
 All state changes are applied simultaneously after each time step.
 
-The initial infection exposure is independent of vaccination.
+The initial infection is drawn among unvaccinated individuals.
 """
 
 import numpy as np
+
+
+def choose_patient_zero(nodes, vaccinated, rng):
+    """
+    Choose the first unvaccinated person in a random order of all nodes.
+
+    The order depends only on rng, not on who is vaccinated. Two policies
+    that use the same seed therefore get the same patient zero whenever
+    that person is unvaccinated under both policies.
+
+    Returns None if everyone is vaccinated.
+    """
+
+    order = rng.permutation(sorted(nodes))
+
+    for node in order:
+        if int(node) not in vaccinated:
+            return int(node)
+
+    return None
 
 
 def simulate_epidemic(
@@ -21,7 +41,7 @@ def simulate_epidemic(
     beta=0.05,
     gamma=0.10,
     initial_infected=None,
-    max_steps=100,
+    max_steps=1000,
     seed=42
 ):
     """
@@ -32,8 +52,8 @@ def simulate_epidemic(
         vaccinated: Set of node IDs vaccinated before the outbreak.
         beta: Infection probability per infectious contact per step.
         gamma: Recovery probability per infected node per step.
-        initial_infected: Initial infection exposure nodes. If None,
-                          choose one random node, including vaccinated.
+        initial_infected: Initial infected nodes. If None, choose one
+                          random unvaccinated node.
         max_steps: Maximum number of simulation steps.
         seed: Random seed for reproducibility.
 
@@ -51,7 +71,10 @@ def simulate_epidemic(
     if not isinstance(max_steps, int) or max_steps < 0:
         raise ValueError("max_steps must be a non-negative integer")
 
-    rng = np.random.default_rng(seed)
+    # Two separate random streams that both depend only on seed:
+    # one chooses patient zero, the other drives the epidemic.
+    exposure_seed, epidemic_seed = np.random.SeedSequence(seed).spawn(2)
+    rng = np.random.default_rng(epidemic_seed)
 
     nodes = set(G.nodes())
     vaccinated = set() if vaccinated is None else set(vaccinated)
@@ -68,12 +91,10 @@ def simulate_epidemic(
 
     # 3. Select the initial infection exposure
     if initial_infected is None:
-        # Choose from all nodes, independent of vaccination.
-        if nodes:
-            patient_zero = rng.choice(sorted(nodes))
-            initial_infected = {int(patient_zero)}
-        else:
-            initial_infected = set()
+        # Choose among unvaccinated people only.
+        exposure_rng = np.random.default_rng(exposure_seed)
+        patient_zero = choose_patient_zero(nodes, vaccinated, exposure_rng)
+        initial_infected = set() if patient_zero is None else {patient_zero}
     else:
         initial_infected = set(initial_infected)
 
@@ -96,6 +117,7 @@ def simulate_epidemic(
     }]
 
     total_infected = len(infected)
+    infected_at_start = set(infected)
 
     # 5. Run the epidemic simulation
     for step in range(1, max_steps + 1):
@@ -142,6 +164,7 @@ def simulate_epidemic(
         ),
         "duration": history[-1]["step"],
         "vaccinated_count": len(vaccinated),
+        "initial_infected": sorted(infected_at_start),
         "epidemic_ended": len(infected) == 0,
         "history": history,
     }

@@ -1,8 +1,10 @@
+# Emil and Khalid - Tests for the epidemic simulation
 
 import networkx as nx
+import numpy as np
 import pytest
 
-from epidemic import simulate_epidemic
+from epidemic import choose_patient_zero, simulate_epidemic
 
 
 def test_no_transmission():
@@ -60,7 +62,6 @@ def test_invalid_infection_probability():
         simulate_epidemic(G, beta=1.5)
 
 
-
 def test_vaccination_blocks_initial_infection():
     G = nx.path_graph(10)
 
@@ -77,3 +78,85 @@ def test_vaccination_blocks_initial_infection():
     assert result["peak_infected"] == 0
     assert result["epidemic_ended"] is True
     assert result["duration"] == 0
+
+
+def test_patient_zero_is_never_vaccinated():
+    G = nx.path_graph(10)
+    vaccinated = set(range(9))
+
+    for seed in range(20):
+        rng = np.random.default_rng(seed)
+        assert choose_patient_zero(G.nodes(), vaccinated, rng) == 9
+
+
+def test_patient_zero_when_everyone_is_vaccinated():
+    G = nx.path_graph(5)
+    rng = np.random.default_rng(42)
+
+    assert choose_patient_zero(G.nodes(), set(G.nodes()), rng) is None
+
+
+def test_patient_zero_is_shared_across_policies():
+    G = nx.path_graph(50)
+    policy_a = set(range(0, 10))
+    policy_b = set(range(40, 50))
+
+    for seed in range(30):
+        a = choose_patient_zero(G.nodes(), policy_a, np.random.default_rng(seed))
+        b = choose_patient_zero(G.nodes(), policy_b, np.random.default_rng(seed))
+        unvaccinated = choose_patient_zero(G.nodes(), set(), np.random.default_rng(seed))
+
+        # If the first person in the order is unvaccinated under both
+        # policies, both policies start the outbreak there.
+        if unvaccinated not in policy_a | policy_b:
+            assert a == b == unvaccinated
+
+
+def test_default_outbreak_always_starts():
+    G = nx.path_graph(10)
+
+    for seed in range(20):
+        result = simulate_epidemic(
+            G,
+            vaccinated={0, 1, 2, 3, 4},
+            beta=0.0,
+            gamma=1.0,
+            seed=seed
+        )
+
+        # One unvaccinated person is always infected at the start
+        assert result["total_infected"] == 1
+
+
+def test_long_outbreak_is_not_truncated():
+    # A chain where each step infects exactly one new person.
+    # The outbreak needs about 300 steps to reach the end.
+    G = nx.path_graph(300)
+
+    result = simulate_epidemic(
+        G,
+        beta=1.0,
+        gamma=1.0,
+        initial_infected={0},
+        seed=42
+    )
+
+    assert result["total_infected"] == 300
+    assert result["epidemic_ended"] is True
+
+
+def test_same_seed_gives_same_patient_zero_across_policies():
+    G = nx.path_graph(50)
+    policy_a = set(range(0, 10))
+    policy_b = set(range(40, 50))
+
+    for seed in range(30):
+        a = simulate_epidemic(G, vaccinated=policy_a, seed=seed)
+        b = simulate_epidemic(G, vaccinated=policy_b, seed=seed)
+        none = simulate_epidemic(G, seed=seed)
+
+        # If patient zero without vaccination is unvaccinated under both
+        # policies, both policies start the outbreak in the same person.
+        if none["initial_infected"][0] not in policy_a | policy_b:
+            assert a["initial_infected"] == b["initial_infected"]
+            assert a["initial_infected"] == none["initial_infected"]

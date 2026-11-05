@@ -25,3 +25,6 @@ pytestdebug.log
 
 # macOS
 .DS_Store
+
+# Quick test runs of experiments.py
+results/quick_*

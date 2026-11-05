@@ -1,4 +1,4 @@
-﻿# Emil and Andreas
+﻿# Emil, Andreas and Khalid
 """
 Evolutionary optimization of vaccination strategies.
 
@@ -13,10 +13,25 @@ individuals for vaccination.
 Lower fitness means fewer infections.
 """
 
+import networkx as nx
 import numpy as np
 
 from epidemic import simulate_epidemic
 from policies import validate_budget, weighted_policy
+
+
+def as_graph_list(G):
+    """Accept one network or a list of networks and return a list."""
+
+    if isinstance(G, nx.Graph):
+        return [G]
+
+    graphs = list(G)
+
+    if not graphs:
+        raise ValueError("At least one network is required.")
+
+    return graphs
 
 
 def check_weights(weights):
@@ -29,9 +44,9 @@ def check_weights(weights):
             "Candidate must have three finite weights."
         )
 
-    if np.any(values < 0) or np.any(values > 1):
+    if np.any(values < -1) or np.any(values > 1):
         raise ValueError(
-            "Candidate weights must be between 0 and 1."
+            "Candidate weights must be between -1 and 1."
         )
 
     return values
@@ -45,8 +60,9 @@ def create_candidate(rng):
     a network feature in the vaccination policy.
     """
 
-    # Generate three weights between 0 and 1
-    return rng.uniform(0, 1, size=3)
+    # Generate three weights between -1 and 1.
+    # A negative weight lets a feature lower a person's score.
+    return rng.uniform(-1, 1, size=3)
 
 
 def create_population(population_size=20, seed=42):
@@ -81,7 +97,7 @@ def mutate(candidate, rng, sigma=0.1):
     Mutate a candidate by adding Gaussian noise.
 
     The original candidate is not modified.
-    Weights remain between 0 and 1.
+    Weights remain between -1 and 1.
     """
 
     weights = check_weights(candidate)
@@ -96,8 +112,8 @@ def mutate(candidate, rng, sigma=0.1):
 
     mutated = weights + noise
 
-    # Keep weights between 0 and 1
-    return np.clip(mutated, 0, 1)
+    # Keep weights between -1 and 1
+    return np.clip(mutated, -1, 1)
 
 
 def crossover(parent_a, parent_b, rng):
@@ -129,22 +145,42 @@ def evaluate_fitness(
     """
     Evaluate a candidate across several epidemic simulations.
 
+    G can be one network or a list of networks. The candidate is
+    applied to every network, and every seed is simulated on every
+    network, so fitness is the mean over networks x seeds.
+
     The candidate contains three weights.
     weighted_policy() selects the vaccinated individuals.
 
     Lower fitness means fewer infections.
     """
 
-    validate_budget(G, budget)
+    graphs = as_graph_list(G)
     weights = check_weights(candidate)
-
     seeds = list(seeds)
-    nodes = sorted(G.nodes())
 
-    if not nodes or not seeds:
-        raise ValueError(
-            "A nonempty network and at least one seed are required."
+    if not seeds:
+        raise ValueError("At least one seed is required.")
+
+    infection_counts = []
+
+    for graph in graphs:
+        validate_budget(graph, budget)
+
+        if graph.number_of_nodes() == 0:
+            raise ValueError("Networks cannot be empty.")
+
+        # The rule is recomputed on each network
+        infection_counts.extend(
+            simulate_candidate(graph, weights, seeds, budget, beta, gamma)
         )
+
+    # Return average infections across all simulations
+    return float(np.mean(infection_counts))
+
+
+def simulate_candidate(G, weights, seeds, budget, beta, gamma):
+    """Run one epidemic per seed on one network and return the counts."""
 
     # Use Andreas' weighted policy to select people
     vaccinated = weighted_policy(G, budget, weights)
@@ -153,25 +189,22 @@ def evaluate_fitness(
 
     for seed in seeds:
 
-        # Choose initial exposure independently of vaccination
-        rng = np.random.default_rng(seed)
-        patient_zero = int(rng.choice(nodes))
-
-        # Simulate the epidemic using selected individuals
+        # simulate_epidemic chooses patient zero among unvaccinated
+        # people from a stream that depends only on the seed. Every
+        # candidate therefore meets the same patient zero whenever that
+        # person is unvaccinated under both.
         result = simulate_epidemic(
             G=G,
             vaccinated=vaccinated,
             beta=beta,
             gamma=gamma,
-            initial_infected={patient_zero},
             seed=seed
         )
 
         # Save the number of infected individuals
         infection_counts.append(result["total_infected"])
 
-    # Return average infections across all simulations
-    return float(np.mean(infection_counts))
+    return infection_counts
 
 
 def tournament_selection(
@@ -225,10 +258,17 @@ def run_evolution(
     mutation_rate=0.2,
     tournament_size=3,
     fitness_seeds=None,
-    seed=42
+    seed=42,
+    beta=0.05,
+    gamma=0.10,
+    verbose=True
 ):
     """
     Optimize vaccination weights using a genetic algorithm.
+
+    G can be one network or a list of training networks.
+    beta and gamma are passed on to every epidemic simulation.
+    Set verbose=False to hide the progress printout.
 
     Returns:
         Best weights, vaccinated people,
@@ -236,10 +276,13 @@ def run_evolution(
     """
 
     # 1. Validate parameters
-    validate_budget(G, budget)
+    graphs = as_graph_list(G)
 
-    if G.number_of_nodes() == 0:
-        raise ValueError("Network cannot be empty.")
+    for graph in graphs:
+        validate_budget(graph, budget)
+
+        if graph.number_of_nodes() == 0:
+            raise ValueError("Network cannot be empty.")
 
     if not isinstance(population_size, int) or population_size < 2:
         raise ValueError(
@@ -272,12 +315,15 @@ def run_evolution(
             "At least one fitness seed is required."
         )
 
-    # 2. Initialize random generator and population
-    rng = np.random.default_rng(seed)
+    # 2. Initialize random generators and population.
+    # The initial population and the GA operators get separate
+    # random streams so they do not reuse the same numbers.
+    population_seed, operator_seed = np.random.SeedSequence(seed).spawn(2)
+    rng = np.random.default_rng(operator_seed)
 
     population = create_population(
         population_size=population_size,
-        seed=seed
+        seed=population_seed
     )
 
     best_weights = None
@@ -293,10 +339,12 @@ def run_evolution(
 
         if key not in fitness_cache:
             fitness_cache[key] = evaluate_fitness(
-                G=G,
+                G=graphs,
                 candidate=weights,
                 seeds=fitness_seeds,
-                budget=budget
+                budget=budget,
+                beta=beta,
+                gamma=gamma
             )
 
         return fitness_cache[key]
@@ -328,11 +376,12 @@ def run_evolution(
             "average_fitness": float(np.mean(fitness_scores))
         })
 
-        print(
-            f"Generation {generation + 1}/{generations} | "
-            f"Best fitness: {best_fitness:.2f} | "
-            f"Average fitness: {np.mean(fitness_scores):.2f}"
-        )
+        if verbose:
+            print(
+                f"Generation {generation + 1}/{generations} | "
+                f"Best fitness: {best_fitness:.2f} | "
+                f"Average fitness: {np.mean(fitness_scores):.2f}"
+            )
 
         # No offspring needed after the final generation
         if generation == generations - 1:
@@ -379,12 +428,15 @@ def run_evolution(
         # Replace the old population
         population = new_population
 
-    # 6. Convert the best weights into vaccinated individuals
-    best_vaccinated = weighted_policy(
-        G,
-        budget,
-        best_weights
-    )
+    # 6. Convert the best weights into vaccinated individuals.
+    # One set per network, or a single set if one network was given.
+    best_vaccinated = [
+        weighted_policy(graph, budget, best_weights)
+        for graph in graphs
+    ]
+
+    if isinstance(G, nx.Graph):
+        best_vaccinated = best_vaccinated[0]
 
     # 7. Return the optimization results
     return {
