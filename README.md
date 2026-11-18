@@ -12,7 +12,11 @@
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![Model](https://img.shields.io/badge/Model-Network%20SIR-0F766E)
 ![Optimisation](https://img.shields.io/badge/Optimisation-Genetic%20Algorithm-7C3AED)
+![Tests](https://img.shields.io/badge/Tests-pytest-0A9EDC?logo=pytest&logoColor=white)
+![Reproducible](https://img.shields.io/badge/Seeds-fixed%20%26%20reproducible-16A34A)
 ![Status](https://img.shields.io/badge/Status-Experiments%20done%2C%20report%20in%20progress-F59E0B)
+
+[Result](#main-result) · [Model](#how-the-model-works) · [Quick start](#quick-start) · [Structure](#repository-structure) · [Design](#fair-comparison-design) · [Team](#team)
 
 </div>
 
@@ -42,13 +46,15 @@ The epidemic is hypothetical. This is a controlled modelling study, **not** a va
 | No vaccination | 152.0 [146.4, 157.4] | 178 | 84 % |
 | Random | 122.9 [117.3, 128.6] | 152 | 80 % |
 | Highest degree | 26.3 [21.3, 31.3] | 4 | 35 % |
-| Evolved (GA) | 26.6 [22.6, 30.7] | 4 | 32 % |
+| Evolved (GA) | 26.6 [22.6, 30.7] | 3.5 | 32 % |
 | Random search | 26.1 [21.9, 30.4] | 4 | 31 % |
 
 - The evolved rule clearly beats random immunisation: 96.3 fewer infected per network [89.1, 103.3], better on 20 of 20 test networks.
 - It does **not** beat highest-degree-first (difference −0.3 [−4.0, 3.4], better on 9 of 20 networks).
 - Random search over the same weights is as good as the GA (−0.5 [−1.3, 0.2]).
 - All runs converge to a similar rule: large positive weight on degree, negative weight on clustering.
+
+![Final infections per policy on the test scenarios](figures/fig_outcomes.png)
 
 Details, decisions and the full experiment log: [`results/README.md`](results/README.md).
 
@@ -98,9 +104,9 @@ The simulator returns:
 
 `evaluate_fitness()` and `run_evolution()` accept one network or a list of networks.
 
-## Getting started
+## Quick start
 
-Requires Python 3.14 (versions pinned in `requirements.txt`).
+Requires Python 3.14. Dependencies are pinned in `requirements.txt`.
 
 **Windows PowerShell**
 
@@ -118,17 +124,17 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-In VS Code, select the interpreter inside this project's `.venv`, not one from another project.
+In VS Code, select the interpreter inside this project's `.venv`.
 
-### Reproduce everything
+### Reproduce the results
 
-```bash
-python -m pytest -q            # tests
-python pilot.py                # pilot: choose beta and budget (~10 s)
-python experiments.py --quick  # small check that the pipeline runs (~2 s)
-python experiments.py          # main experiments E1 and E2 (~5-8 min)
-python analysis.py             # statistics, table and figures (~15 s)
-```
+| Step | Command | Time |
+|---|---|---|
+| Tests | `python -m pytest -q` | seconds |
+| Pilot: choose β and budget | `python pilot.py` | ~10 s |
+| Pipeline smoke test | `python experiments.py --quick` | ~2 s |
+| Main experiments E1 and E2 | `python experiments.py` | ~5–8 min |
+| Statistics, table and figures | `python analysis.py` | ~15 s |
 
 `experiments.py` overwrites the CSV files in `results/`. Seeds are fixed, so a rerun on the same commit gives identical files.
 
