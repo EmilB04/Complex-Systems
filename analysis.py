@@ -19,6 +19,7 @@ Output
 - results/table4.tex    LaTeX rows for table 4
 - figures/*.pdf, *.png  outcome distribution, fitness history,
                         rule weights, epidemic curves
+- printed: overlap between evolved and degree allocations (appendix B)
 
 Run: python analysis.py
 """
@@ -421,6 +422,41 @@ def figure_curves(rules, rows):
     return typical
 
 
+def overlap_with_degree(rules):
+    """How many of the 20 immunised people each rule shares with degree."""
+
+    import networkx as nx
+
+    graphs = create_networks(FULL["test_graph_seeds"], n=N, m=M)
+
+    for method in ("evolved", "random_search"):
+        overlap = []
+
+        for r in rules:
+            if r["method"] != method:
+                continue
+
+            weights = [float(r["w_degree"]), float(r["w_neighbour_degree"]),
+                       float(r["w_clustering"])]
+
+            for G in graphs:
+                shared = degree_policy(G, BUDGET) & weighted_policy(G, BUDGET, weights)
+                overlap.append(len(shared))
+
+        print(f"{method}: shares {np.mean(overlap):.1f} of {BUDGET} with "
+              f"degree (range {min(overlap)}-{max(overlap)})")
+
+    hubs, everyone = [], []
+
+    for G in graphs:
+        clustering = nx.clustering(G)
+        hubs.append(np.mean([clustering[i] for i in degree_policy(G, BUDGET)]))
+        everyone.append(np.mean(list(clustering.values())))
+
+    print(f"Clustering: degree-selected {np.mean(hubs):.3f}, "
+          f"all nodes {np.mean(everyone):.3f}")
+
+
 # ---------- Main ----------
 
 def main():
@@ -479,6 +515,8 @@ def main():
     print(f"Typical evolved run used in fig_curves: {typical}")
     print("\nSaved results/summary.csv, results/paired.csv, "
           "results/table4.tex and figures/")
+    print()
+    overlap_with_degree(rules)
 
 
 if __name__ == "__main__":
