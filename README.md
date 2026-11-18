@@ -1,13 +1,11 @@
-<div align="center">
-
 # Epidemic Spread & Prevention
 
-**Network-based epidemic modelling and evolutionary optimisation of vaccination rules**
+Network-based epidemic modelling and evolutionary optimisation of vaccination rules.
 
-**ITI41225 · Complex Systems Modelling and Digital Evolution**  
+ITI41225 · Complex Systems Modelling and Digital Evolution\
 Østfold University College · Group project · Autumn 2026
 
-**Emil · Andreas · Khalid**
+Emil · Andreas · Khalid
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![Model](https://img.shields.io/badge/Model-Network%20SIR-0F766E)
@@ -18,20 +16,17 @@
 
 [Result](#main-result) · [Model](#how-the-model-works) · [Quick start](#quick-start) · [Structure](#repository-structure) · [Design](#fair-comparison-design) · [Team](#team)
 
-</div>
-
-> **Research question**  
-> Can an evolved immunisation rule reduce the final size of an epidemic on a contact network, compared with random immunisation, when both rules immunise the same number of individuals before the outbreak starts?
+> Research question: can an evolved immunisation rule reduce the final size of an epidemic on a contact network, compared with random immunisation, when both rules immunise the same number of individuals before the outbreak starts?
 
 ## Overview
 
 Each person is a node in a contact network, and an epidemic spreads through it as a discrete-time **SIR** process. Before the outbreak, a fixed number of people (the budget) are immunised. We compare three ways of choosing them:
 
-| Policy | How people are chosen | Role |
-|---|---|---|
-| **Random** | Uniformly at random, a new draw for every scenario | Primary baseline |
-| **Highest degree** | The people with most contacts | Network-aware reference |
-| **Evolved** | Ranked by a weighted sum of three network features; a genetic algorithm (GA) evolves the weights | Proposed method |
+| Policy             | How people are chosen                                                                            | Role                    |
+| ------------------ | ------------------------------------------------------------------------------------------------ | ----------------------- |
+| **Random**         | Uniformly at random, a new draw for every scenario                                               | Primary baseline        |
+| **Highest degree** | The people with most contacts                                                                    | Network-aware reference |
+| **Evolved**        | Ranked by a weighted sum of three network features; a genetic algorithm (GA) evolves the weights | Proposed method         |
 
 As a control, **random search** over the same weights, with the same number of evaluations as the GA, shows whether the GA operators themselves matter.
 
@@ -41,13 +36,13 @@ The epidemic is hypothetical. This is a controlled modelling study, **not** a va
 
 400 held-out scenarios (20 new networks × 20 outbreaks), budget 20 of 200, β = 0.08, γ = 0.10. Confidence intervals resample whole test networks (cluster bootstrap).
 
-| Policy | Mean infected [95 % CI] | Median | Large outbreaks (>20) |
-|---|---:|---:|---:|
-| No vaccination | 152.0 [146.4, 157.4] | 178 | 84 % |
-| Random | 122.9 [117.3, 128.6] | 152 | 80 % |
-| Highest degree | 26.3 [21.3, 31.3] | 4 | 35 % |
-| Evolved (GA) | 26.6 [22.6, 30.7] | 3.5 | 32 % |
-| Random search | 26.1 [21.9, 30.4] | 4 | 31 % |
+| Policy         | Mean infected [95 % CI] | Median | Large outbreaks (>20) |
+| -------------- | ----------------------: | -----: | --------------------: |
+| No vaccination |    152.0 [146.4, 157.4] |    178 |                  84 % |
+| Random         |    122.9 [117.3, 128.6] |    152 |                  80 % |
+| Highest degree |       26.3 [21.3, 31.3] |      4 |                  35 % |
+| Evolved (GA)   |       26.6 [22.6, 30.7] |    3.5 |                  32 % |
+| Random search  |       26.1 [21.9, 30.4] |      4 |                  31 % |
 
 - The evolved rule clearly beats random immunisation: 96.3 fewer infected per network [89.1, 103.3], better on 20 of 20 test networks.
 - It does **not** beat highest-degree-first (difference −0.3 [−4.0, 3.4], better on 9 of 20 networks).
@@ -75,15 +70,15 @@ Barabási–Albert graphs with n = 200 and m = 3 (591 edges, mean degree 5.91), 
 
 The simulator returns:
 
-| Output | Meaning |
-|---|---|
-| `total_infected` | People infected at least once, including patient zero |
-| `peak_infected` | Highest number infectious at the same time |
-| `duration` | Time steps until no one is infectious |
-| `vaccinated_count` | Number of immunised people |
-| `initial_infected` | Patient zero |
-| `epidemic_ended` | Whether no infectious people remain |
-| `history` | S/I/R counts per time step |
+| Output             | Meaning                                               |
+| ------------------ | ----------------------------------------------------- |
+| `total_infected`   | People infected at least once, including patient zero |
+| `peak_infected`    | Highest number infectious at the same time            |
+| `duration`         | Time steps until no one is infectious                 |
+| `vaccinated_count` | Number of immunised people                            |
+| `initial_infected` | Patient zero                                          |
+| `epidemic_ended`   | Whether no infectious people remain                   |
+| `history`          | S/I/R counts per time step                            |
 
 ### Immunisation policies (`policies.py`)
 
@@ -91,16 +86,16 @@ The simulator returns:
 
 ### Genetic algorithm (`evolution.py`)
 
-| Setting | Value |
-|---|---|
-| Genome | 3 real-valued weights in [−1, 1] |
-| Population | 20 |
-| Generations | 20 |
-| Selection | Tournament, size 3 |
-| Crossover | Uniform (each weight from either parent) |
-| Mutation | Gaussian, σ = 0.1, probability 0.2 per offspring, clipped to [−1, 1] |
-| Elitism | Best-so-far candidate kept |
-| Fitness | Mean infected over 5 training networks × 10 outbreaks (lower is better) |
+| Setting     | Value                                                                   |
+| ----------- | ----------------------------------------------------------------------- |
+| Genome      | 3 real-valued weights in [−1, 1]                                        |
+| Population  | 20                                                                      |
+| Generations | 20                                                                      |
+| Selection   | Tournament, size 3                                                      |
+| Crossover   | Uniform (each weight from either parent)                                |
+| Mutation    | Gaussian, σ = 0.1, probability 0.2 per offspring, clipped to [−1, 1]    |
+| Elitism     | Best-so-far candidate kept                                              |
+| Fitness     | Mean infected over 5 training networks × 10 outbreaks (lower is better) |
 
 `evaluate_fitness()` and `run_evolution()` accept one network or a list of networks.
 
@@ -108,7 +103,7 @@ The simulator returns:
 
 Requires Python 3.14. Dependencies are pinned in `requirements.txt`.
 
-**Windows PowerShell**
+### Windows PowerShell
 
 ```powershell
 py -m venv .venv
@@ -116,7 +111,7 @@ py -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-**macOS / Linux**
+### macOS / Linux
 
 ```bash
 python3 -m venv .venv
@@ -128,13 +123,13 @@ In VS Code, select the interpreter inside this project's `.venv`.
 
 ### Reproduce the results
 
-| Step | Command | Time |
-|---|---|---|
-| Tests | `python -m pytest -q` | seconds |
-| Pilot: choose β and budget | `python pilot.py` | ~10 s |
-| Pipeline smoke test | `python experiments.py --quick` | ~2 s |
-| Main experiments E1 and E2 | `python experiments.py` | ~5–8 min |
-| Statistics, table and figures | `python analysis.py` | ~15 s |
+| Step                          | Command                         | Time     |
+| ----------------------------- | ------------------------------- | -------- |
+| Tests                         | `python -m pytest -q`           | seconds  |
+| Pilot: choose β and budget    | `python pilot.py`               | ~10 s    |
+| Pipeline smoke test           | `python experiments.py --quick` | ~2 s     |
+| Main experiments E1 and E2    | `python experiments.py`         | ~5–8 min |
+| Statistics, table and figures | `python analysis.py`            | ~15 s    |
 
 `experiments.py` overwrites the CSV files in `results/`. Seeds are fixed, so a rerun on the same commit gives identical files.
 
@@ -184,11 +179,11 @@ Complex-Systems/
 
 ## Team
 
-| Member | Main implementation responsibility | Shared work |
-|---|---|---|
-| **Emil** | SIR simulator (`epidemic.py`) and genetic algorithm (`evolution.py`) | Integration, tests, methodological review |
-| **Andreas** | Contact networks (`network.py`) and policies (`policies.py`) | Network analysis, baseline review, documentation |
-| **Khalid** | Experiment design and pipeline (`pilot.py`, `experiments.py`, `analysis.py`), model fixes before the experiments, statistics and figures | Reproducibility, tests, result presentation |
+| Member      | Main implementation responsibility                                                                                                       | Shared work                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Emil**    | SIR simulator (`epidemic.py`) and genetic algorithm (`evolution.py`)                                                                     | Integration, tests, methodological review        |
+| **Andreas** | Contact networks (`network.py`) and policies (`policies.py`)                                                                             | Network analysis, baseline review, documentation |
+| **Khalid**  | Experiment design and pipeline (`pilot.py`, `experiments.py`, `analysis.py`), model fixes before the experiments, statistics and figures | Reproducibility, tests, result presentation      |
 
 All members contribute to testing, review and the report.
 
@@ -208,6 +203,4 @@ External implementations, if reused, are cited and clearly distinguished from th
 
 ---
 
-<div align="center">
-<sub>Complex Systems · Epidemic Spread & Prevention · Østfold University College · 2026</sub>
-</div>
+Complex Systems · Epidemic Spread & Prevention · Østfold University College · 2026
