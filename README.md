@@ -101,7 +101,7 @@ The simulator returns:
 
 ## Quick start
 
-Requires Python 3.14. Dependencies are pinned in `requirements.txt`.
+Tested with Python 3.13.15. Dependencies are pinned in `requirements.txt`.
 
 ### Windows PowerShell
 
